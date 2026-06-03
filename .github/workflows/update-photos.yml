@@ -1,0 +1,39 @@
+name: 🔄 Cập nhật photos.json từ Google Drive
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'   # Mỗi 5 phút (giới hạn tối thiểu của GitHub)
+
+  workflow_dispatch:         # Nút Run workflow thủ công
+
+jobs:
+  update-photos:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: 📥 Checkout repo
+        uses: actions/checkout@v4
+
+      - name: 🐍 Cài Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 📦 Cài thư viện
+        run: pip install google-api-python-client google-auth-httplib2 google-auth-oauthlib
+
+      - name: 🔑 Tạo token.json từ Secret
+        run: echo '${{ secrets.GDRIVE_TOKEN }}' > token.json
+
+      - name: 🏃 Chạy generate_index.py
+        run: python generate_index.py
+
+      - name: 📤 Commit & push nếu có thay đổi
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add photos.json
+          git diff --staged --quiet || git commit -m "chore: cập nhật photos.json $(date +'%Y-%m-%d %H:%M') UTC"
+          git push
